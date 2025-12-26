@@ -1,7 +1,9 @@
 package com.microphone.speaker.app
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,7 +33,7 @@ fun MicrophoneSpeakerApp(
             .fillMaxSize()
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Top
     ) {
         Text(
             text = stringResource(R.string.app_title),
@@ -44,6 +46,7 @@ fun MicrophoneSpeakerApp(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
+                .weight(1f)
                 .padding(bottom = 16.dp)
         ) {
             Column(
@@ -56,25 +59,29 @@ fun MicrophoneSpeakerApp(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 
-                uiState.availableMicrophones.forEach { microphone ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectable(
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                ) {
+                    uiState.availableMicrophones.forEach { microphone ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .selectable(
+                                    selected = (microphone.id == uiState.selectedMicrophone?.id),
+                                    onClick = { viewModel.selectMicrophone(microphone) }
+                                )
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
                                 selected = (microphone.id == uiState.selectedMicrophone?.id),
                                 onClick = { viewModel.selectMicrophone(microphone) }
                             )
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = (microphone.id == uiState.selectedMicrophone?.id),
-                            onClick = { viewModel.selectMicrophone(microphone) }
-                        )
-                        Text(
-                            text = microphone.name,
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
+                            Text(
+                                text = microphone.name,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -133,6 +140,7 @@ fun MicrophoneSpeakerApp(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
+                .weight(1f)
                 .padding(bottom = 32.dp)
         ) {
             Column(
@@ -145,25 +153,29 @@ fun MicrophoneSpeakerApp(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 
-                uiState.availableSpeakers.forEach { speaker ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectable(
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                ) {
+                    uiState.availableSpeakers.forEach { speaker ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .selectable(
+                                    selected = (speaker.id == uiState.selectedSpeaker?.id),
+                                    onClick = { viewModel.selectSpeaker(speaker) }
+                                )
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
                                 selected = (speaker.id == uiState.selectedSpeaker?.id),
                                 onClick = { viewModel.selectSpeaker(speaker) }
                             )
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = (speaker.id == uiState.selectedSpeaker?.id),
-                            onClick = { viewModel.selectSpeaker(speaker) }
-                        )
-                        Text(
-                            text = speaker.name,
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
+                            Text(
+                                text = speaker.name,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
                     }
                 }
             }
