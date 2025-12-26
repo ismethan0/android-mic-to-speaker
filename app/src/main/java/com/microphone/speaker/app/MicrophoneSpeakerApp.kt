@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -76,6 +77,12 @@ fun MicrophoneSpeakerApp(
                             RadioButton(
                                 selected = (microphone.id == uiState.selectedMicrophone?.id),
                                 onClick = { viewModel.selectMicrophone(microphone) }
+                            )
+                            Icon(
+                                painter = painterResource(id = microphone.icon),
+                                contentDescription = null,
+                                modifier = Modifier.padding(start = 8.dp).size(24.dp),
+                                tint = MaterialTheme.colorScheme.primary
                             )
                             Text(
                                 text = microphone.name,
@@ -170,6 +177,12 @@ fun MicrophoneSpeakerApp(
                             RadioButton(
                                 selected = (speaker.id == uiState.selectedSpeaker?.id),
                                 onClick = { viewModel.selectSpeaker(speaker) }
+                            )
+                            Icon(
+                                painter = painterResource(id = speaker.icon),
+                                contentDescription = null,
+                                modifier = Modifier.padding(start = 8.dp).size(24.dp),
+                                tint = MaterialTheme.colorScheme.primary
                             )
                             Text(
                                 text = speaker.name,

@@ -8,7 +8,8 @@ data class AudioDevice(
     val id: Int,
     val name: String,
     val type: AudioDeviceType,
-    val deviceInfo: AudioDeviceInfo? = null
+    val deviceInfo: AudioDeviceInfo? = null,
+    val icon: Int = R.drawable.ic_microphone_small // Varsayılan ikon
 )
 
 enum class AudioDeviceType {

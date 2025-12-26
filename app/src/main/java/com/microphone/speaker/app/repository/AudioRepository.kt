@@ -43,6 +43,9 @@ class AudioRepository @Inject constructor() {
         val devices = audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)
         
         for (device in devices) {
+            // Sadece kaynak (giriş) olabilen cihazları al
+            if (!device.isSource) continue
+
             val name = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                 device.address.takeIf { it.isNotEmpty() } ?: device.productName.toString()
             } else {
@@ -54,7 +57,8 @@ class AudioRepository @Inject constructor() {
                     id = device.id,
                     name = "${getDeviceTypeName(device.type)} ($name)",
                     type = AudioDeviceType.MICROPHONE,
-                    deviceInfo = device
+                    deviceInfo = device,
+                    icon = com.microphone.speaker.app.R.drawable.ic_microphone_small
                 )
             )
         }
@@ -69,6 +73,9 @@ class AudioRepository @Inject constructor() {
         val devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
         
         for (device in devices) {
+            // Sadece alıcı (çıkış) olabilen cihazları al
+            if (!device.isSink) continue
+
             val name = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                 device.address.takeIf { it.isNotEmpty() } ?: device.productName.toString()
             } else {
@@ -80,7 +87,8 @@ class AudioRepository @Inject constructor() {
                     id = device.id,
                     name = "${getDeviceTypeName(device.type)} ($name)",
                     type = AudioDeviceType.SPEAKER,
-                    deviceInfo = device
+                    deviceInfo = device,
+                    icon = com.microphone.speaker.app.R.drawable.ic_speaker
                 )
             )
         }
@@ -191,9 +199,13 @@ class AudioRepository @Inject constructor() {
             
             // Mikrofonu yönlendir (API 23+)
             if (microphone.deviceInfo != null) {
-                val success = audioRecord?.setPreferredDevice(microphone.deviceInfo)
-                if (success != true) {
-                    // Başarısız olsa bile devam et, belki varsayılan çalışır
+                try {
+                    val success = audioRecord?.setPreferredDevice(microphone.deviceInfo)
+                    if (success != true) {
+                        // Başarısız olsa bile devam et, belki varsayılan çalışır
+                    }
+                } catch (e: Exception) {
+                    // Cihaz seçimi hatası, yoksay
                 }
             }
             
@@ -219,9 +231,13 @@ class AudioRepository @Inject constructor() {
             
             // Hoparlörü yönlendir (API 23+)
             if (speaker.deviceInfo != null) {
-                val success = audioTrack?.setPreferredDevice(speaker.deviceInfo)
-                if (success != true) {
-                    // Başarısız olsa bile devam et
+                try {
+                    val success = audioTrack?.setPreferredDevice(speaker.deviceInfo)
+                    if (success != true) {
+                        // Başarısız olsa bile devam et
+                    }
+                } catch (e: Exception) {
+                    // Cihaz seçimi hatası, yoksay
                 }
             }
             
