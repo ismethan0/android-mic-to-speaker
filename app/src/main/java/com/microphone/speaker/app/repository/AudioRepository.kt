@@ -167,6 +167,10 @@ class AudioRepository @Inject constructor() {
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            
+            // Ses yönlendirmesini yap (Bluetooth SCO, Hoparlör vb.)
+            setupAudioRouting(audioManager, speaker)
+            
             val sampleRate = audioQuality.sampleRate
             
             // AudioRecord için buffer size hesapla
@@ -256,15 +260,45 @@ class AudioRepository @Inject constructor() {
         } catch (e: IllegalStateException) {
             Result.failure(Exception("Audio cihazı kullanımda: ${e.message}"))
         } catch (e: Exception) {
-            Result.failure(Exception("Ses aktarımı başlatılamadı: ${e.message}"))
+            ResusetupAudioRouting(audioManager: AudioManager, speaker: AudioDevice) {
+        val type = speaker.deviceInfo?.type ?: return
+
+        // Reset states
+        audioManager.mode = AudioManager.MODE_IN_COMMUNICATION // Low latency mode
+        audioManager.stopBluetoothSco()
+        audioManager.isBluetoothScoOn = false
+        audioManager.isSpeakerphoneOn = false
+
+        when (type) {
+            AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
+            AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
+            AudioDeviceInfo.TYPE_BLE_HEADSET,
+            AudioDeviceInfo.TYPE_BLE_SPEAKER -> {
+                audioManager.startBluetoothSco()
+                audioManager.isBluetoothScoOn = true
+            }
+            AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> {
+                audioManager.isSpeakerphoneOn = true
+            }
+            AudioDeviceInfo.TYPE_BUILTIN_EARPIECE,
+            AudioDeviceInfo.TYPE_WIRED_HEADSET,
+            AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
+            AudioDeviceInfo.TYPE_USB_DEVICE,
+            AudioDeviceInfo.TYPE_USB_HEADSET -> {
+                audioManager.isSpeakerphoneOn = false
+            }
         }
     }
-    
+
     private fun createAudioTrack(
         audioFormat: Int,
         sampleRate: Int,
         bufferSize: Int
     ): AudioTrack {
+        return AudioTrack.Builder()
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION
         return AudioTrack.Builder()
             .setAudioAttributes(
                 AudioAttributes.Builder()
