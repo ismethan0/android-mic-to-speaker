@@ -43,17 +43,50 @@ class AudioViewModel @Inject constructor(
     }
     
     fun selectMicrophone(microphone: AudioDevice) {
-        _uiState.value = _uiState.value.copy(
+        val currentState = _uiState.value
+        _uiState.value = currentState.copy(
             selectedMicrophone = microphone,
             errorMessage = null
         )
+        
+        // Eğer kayıt yapılıyorsa, cihazı değiştir
+        if (currentState.isRecording) {
+            changeAudioDevices()
+        }
     }
     
     fun selectSpeaker(speaker: AudioDevice) {
-        _uiState.value = _uiState.value.copy(
+        val currentState = _uiState.value
+        _uiState.value = currentState.copy(
             selectedSpeaker = speaker,
             errorMessage = null
         )
+        
+        // Eğer kayıt yapılıyorsa, cihazı değiştir
+        if (currentState.isRecording) {
+            changeAudioDevices()
+        }
+    }
+    
+    private fun changeAudioDevices() {
+        val currentState = _uiState.value
+        val microphone = currentState.selectedMicrophone
+        val speaker = currentState.selectedSpeaker
+        val ctx = context
+        
+        if (microphone == null || speaker == null || ctx == null) {
+            return
+        }
+        
+        viewModelScope.launch {
+            audioRepository.changeAudioDevices(ctx, microphone, speaker)
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isRecording = false,
+                        errorMessage = error.message
+                    )
+                }
+        }
     }
     
     fun startAudioTransfer() {

@@ -140,11 +140,22 @@ fun MicrophoneSpeakerApp(
 
         // Durum Göstergesi
         if (uiState.isRecording) {
-            Text(
-                text = "🎤 Aktif - Mikrofon sesi hoparlöre aktarılıyor",
-                modifier = Modifier.padding(top = 16.dp),
-                color = MaterialTheme.colorScheme.primary
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(top = 16.dp)
+            ) {
+                Text(
+                    text = "🎤 Aktif - Mikrofon sesi hoparlöre aktarılıyor",
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                Text(
+                    text = "💡 Cihazları değiştirebilirsiniz",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
 
         // Hata Mesajı

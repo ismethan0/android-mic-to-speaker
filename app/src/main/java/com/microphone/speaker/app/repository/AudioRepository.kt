@@ -18,6 +18,9 @@ class AudioRepository @Inject constructor() {
     private var audioRecord: AudioRecord? = null
     private var audioTrack: AudioTrack? = null
     private var isRecording = false
+    private var currentMicrophone: AudioDevice? = null
+    private var currentSpeaker: AudioDevice? = null
+    private var currentContext: Context? = null
     
     companion object {
         private const val BLUETOOTH_SCO_AUDIO_SOURCE = 6 // MediaRecorder.AudioSource.BLUETOOTH_SCO
@@ -94,13 +97,57 @@ class AudioRepository @Inject constructor() {
                 return@withContext Result.failure(Exception("Ses aktarımı zaten başlatılmış"))
             }
             
+            currentContext = context
+            currentMicrophone = microphone
+            currentSpeaker = speaker
+            
+            return@withContext setupAudioDevices(context, microphone, speaker)
+        } catch (e: SecurityException) {
+            Result.failure(Exception("Mikrofon izni gerekli: ${e.message}"))
+        } catch (e: Exception) {
+            Result.failure(Exception("Ses aktarımı başlatılamadı: ${e.message}"))
+        }
+    }
+    
+    suspend fun changeAudioDevices(
+        context: Context,
+        microphone: AudioDevice,
+        speaker: AudioDevice
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (!isRecording) {
+                return@withContext Result.failure(Exception("Ses aktarımı başlatılmamış"))
+            }
+            
+            // Mevcut ses aktarımını durdur
+            stopCurrentAudio()
+            
+            // Yeni cihazları ayarla
+            currentMicrophone = microphone
+            currentSpeaker = speaker
+            
+            return@withContext setupAudioDevices(context, microphone, speaker)
+        } catch (e: Exception) {
+            Result.failure(Exception("Cihaz değiştirme hatası: ${e.message}"))
+        }
+    }
+    
+    private suspend fun setupAudioDevices(
+        context: Context,
+        microphone: AudioDevice,
+        speaker: AudioDevice
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
             val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             
-            // Bluetooth hoparlör seçildiyse
-            if (speaker.id == BLUETOOTH_SCO_STREAM) {
-                audioManager.startBluetoothSco()
-                audioManager.isBluetoothScoOn = true
+            // Önce mevcut Bluetooth SCO'yu kapat
+            if (audioManager.isBluetoothScoOn) {
+                audioManager.stopBluetoothSco()
+                audioManager.isBluetoothScoOn = false
             }
+            
+            // Audio routing ayarları
+            setupAudioRouting(audioManager, speaker)
             
             // AudioRecord ayarları
             val sampleRate = 44100
@@ -136,23 +183,8 @@ class AudioRepository @Inject constructor() {
                 return@withContext Result.failure(Exception("AudioTrack buffer size hatası"))
             }
             
-            // AudioTrack oluştur
-            audioTrack = AudioTrack.Builder()
-                .setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build()
-                )
-                .setAudioFormat(
-                    AudioFormat.Builder()
-                        .setEncoding(audioFormat)
-                        .setSampleRate(sampleRate)
-                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                        .build()
-                )
-                .setBufferSizeInBytes(trackBufferSize)
-                .build()
+            // AudioTrack oluştur - hoparlör tipine göre
+            audioTrack = createAudioTrack(audioFormat, sampleRate, trackBufferSize, speaker)
             
             if (audioTrack?.state != AudioTrack.STATE_INITIALIZED) {
                 return@withContext Result.failure(Exception("AudioTrack başlatılamadı"))
@@ -168,11 +200,81 @@ class AudioRepository @Inject constructor() {
             startAudioLoop(bufferSize)
             
             Result.success(Unit)
-        } catch (e: SecurityException) {
-            Result.failure(Exception("Mikrofon izni gerekli: ${e.message}"))
         } catch (e: Exception) {
-            Result.failure(Exception("Ses aktarımı başlatılamadı: ${e.message}"))
+            Result.failure(e)
         }
+    }
+    
+    private fun setupAudioRouting(audioManager: AudioManager, speaker: AudioDevice) {
+        when (speaker.id) {
+            BLUETOOTH_SCO_STREAM -> {
+                // Bluetooth hoparlör için
+                audioManager.startBluetoothSco()
+                audioManager.isBluetoothScoOn = true
+                audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+            }
+            AudioManager.STREAM_MUSIC -> {
+                // Dahili hoparlör için
+                audioManager.isBluetoothScoOn = false
+                audioManager.mode = AudioManager.MODE_NORMAL
+                audioManager.isSpeakerphoneOn = true
+            }
+        }
+    }
+    
+    private fun createAudioTrack(
+        audioFormat: Int,
+        sampleRate: Int,
+        bufferSize: Int,
+        speaker: AudioDevice
+    ): AudioTrack {
+        val usage = when (speaker.id) {
+            BLUETOOTH_SCO_STREAM -> AudioAttributes.USAGE_VOICE_COMMUNICATION
+            else -> AudioAttributes.USAGE_MEDIA
+        }
+        
+        return AudioTrack.Builder()
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(usage)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+            )
+            .setAudioFormat(
+                AudioFormat.Builder()
+                    .setEncoding(audioFormat)
+                    .setSampleRate(sampleRate)
+                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                    .build()
+            )
+            .setBufferSizeInBytes(bufferSize)
+            .build()
+    }
+    
+    private fun stopCurrentAudio() {
+        try {
+            audioRecord?.apply {
+                if (recordingState == AudioRecord.RECORDSTATE_RECORDING) {
+                    stop()
+                }
+                release()
+            }
+        } catch (e: Exception) {
+            // Ignore
+        }
+        audioRecord = null
+        
+        try {
+            audioTrack?.apply {
+                if (playState == AudioTrack.PLAYSTATE_PLAYING) {
+                    stop()
+                }
+                release()
+            }
+        } catch (e: Exception) {
+            // Ignore
+        }
+        audioTrack = null
     }
     
     private suspend fun startAudioLoop(bufferSize: Int) = withContext(Dispatchers.IO) {
@@ -193,40 +295,25 @@ class AudioRepository @Inject constructor() {
     fun stopAudioTransfer(context: Context) {
         isRecording = false
         
-        try {
-            audioRecord?.apply {
-                if (recordingState == AudioRecord.RECORDSTATE_RECORDING) {
-                    stop()
-                }
-                release()
-            }
-        } catch (e: Exception) {
-            // AudioRecord durdurma hatası - devam et
-        }
-        audioRecord = null
+        stopCurrentAudio()
         
-        try {
-            audioTrack?.apply {
-                if (playState == AudioTrack.PLAYSTATE_PLAYING) {
-                    stop()
-                }
-                release()
-            }
-        } catch (e: Exception) {
-            // AudioTrack durdurma hatası - devam et
-        }
-        audioTrack = null
-        
-        // Bluetooth SCO'yu kapat
+        // Audio routing'i sıfırla
         try {
             val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            audioManager.mode = AudioManager.MODE_NORMAL
+            audioManager.isSpeakerphoneOn = false
+            
             if (audioManager.isBluetoothScoOn) {
                 audioManager.stopBluetoothSco()
                 audioManager.isBluetoothScoOn = false
             }
         } catch (e: Exception) {
-            // Bluetooth SCO kapatma hatası - devam et
+            // Audio manager hatası - devam et
         }
+        
+        currentContext = null
+        currentMicrophone = null
+        currentSpeaker = null
     }
     
     private fun hasBluetoothPermission(context: Context): Boolean {

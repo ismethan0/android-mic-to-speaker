@@ -1,0 +1,60 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    
+    <!-- Background Circle -->
+    <path
+        android:fillColor="#1976D2"
+        android:pathData="M24,24m-24,0a24,24 0,1 1,48 0a24,24 0,1 1,-48 0" />
+    
+    <!-- Inner Circle for Depth -->
+    <path
+        android:fillColor="#2196F3"
+        android:pathData="M24,24m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0" />
+    
+    <!-- Microphone Capsule -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,10
+                         C27,10 29,12 29,15
+                         L29,25
+                         C29,28 27,30 24,30
+                         C21,30 19,28 19,25
+                         L19,15
+                         C19,12 21,10 24,10
+                         Z" />
+    
+    <!-- Microphone Grille Lines -->
+    <path
+        android:fillColor="#1976D2"
+        android:strokeWidth="0.5"
+        android:pathData="M21,13 L27,13 M21,16 L27,16 M21,19 L27,19 M21,22 L27,22 M21,25 L27,25" />
+    
+    <!-- Microphone Stand -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M23,30 L23,36 L25,36 L25,30 Z" />
+    
+    <!-- Base -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,36 L28,36 L28,38 L20,38 Z" />
+    
+    <!-- Sound Waves -->
+    <path
+        android:fillColor="none"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M32,18 C34,18 35,19 35,21 C35,23 34,24 32,24" />
+    
+    <path
+        android:fillColor="none"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M16,18 C14,18 13,19 13,21 C13,23 14,24 16,24" />
+    
+</vector>

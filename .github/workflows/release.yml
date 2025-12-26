@@ -47,6 +47,9 @@ jobs:
           echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
         fi
         
+    - name: Build debug APK
+      run: ./gradlew assembleDebug
+      
     - name: Build release APK
       run: ./gradlew assembleRelease
       
@@ -54,7 +57,7 @@ jobs:
       id: sign_apk
       run: |
         if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-          echo "Signing APK..."
+          echo "Signing release APK..."
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
           jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
             -keystore keystore.jks \
@@ -63,13 +66,17 @@ jobs:
             app/build/outputs/apk/release/app-release-unsigned.apk \
             "${{ secrets.KEY_ALIAS }}"
           mv app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/app-release-signed.apk
-          echo "APK_PATH=app/build/outputs/apk/release/app-release-signed.apk" >> $GITHUB_OUTPUT
-          echo "APK_NAME=microphone-speaker-${{ steps.get_version.outputs.VERSION }}-signed.apk" >> $GITHUB_OUTPUT
+          echo "RELEASE_APK_PATH=app/build/outputs/apk/release/app-release-signed.apk" >> $GITHUB_OUTPUT
+          echo "RELEASE_APK_NAME=microphone-speaker-${{ steps.get_version.outputs.VERSION }}-release-signed.apk" >> $GITHUB_OUTPUT
         else
-          echo "No keystore found, using unsigned APK"
-          echo "APK_PATH=app/build/outputs/apk/release/app-release-unsigned.apk" >> $GITHUB_OUTPUT
-          echo "APK_NAME=microphone-speaker-${{ steps.get_version.outputs.VERSION }}-unsigned.apk" >> $GITHUB_OUTPUT
+          echo "No keystore found, using unsigned release APK"
+          echo "RELEASE_APK_PATH=app/build/outputs/apk/release/app-release-unsigned.apk" >> $GITHUB_OUTPUT
+          echo "RELEASE_APK_NAME=microphone-speaker-${{ steps.get_version.outputs.VERSION }}-release-unsigned.apk" >> $GITHUB_OUTPUT
         fi
+        
+        # Debug APK her zaman mevcut (debug key ile imzalı)
+        echo "DEBUG_APK_PATH=app/build/outputs/apk/debug/app-debug.apk" >> $GITHUB_OUTPUT
+        echo "DEBUG_APK_NAME=microphone-speaker-${{ steps.get_version.outputs.VERSION }}-debug.apk" >> $GITHUB_OUTPUT
         
     - name: Create Release
       id: create_release
@@ -80,27 +87,53 @@ jobs:
         tag_name: ${{ steps.get_version.outputs.VERSION }}
         release_name: Mikrofon Hoparlör ${{ steps.get_version.outputs.VERSION }}
         body: |
-          ## Mikrofon Hoparlör Uygulaması ${{ steps.get_version.outputs.VERSION }}
+          ## Mikrofon Hoparlör Uygulaması / Microphone Speaker App ${{ steps.get_version.outputs.VERSION }}
           
-          ### Özellikler:
-          - 🎤 Mikrofondan hoparlöre gerçek zamanlı ses aktarımı
-          - 📱 Dahili mikrofon ve hoparlör desteği
-          - 🔵 Bluetooth mikrofon ve hoparlör desteği
-          - 🎛️ Kolay cihaz seçimi
+          ### Özellikler / Features:
+          - 🎤 Mikrofondan hoparlöre gerçek zamanlı ses aktarımı / Real-time microphone to speaker audio transfer
+          - 📱 Dahili mikrofon ve hoparlör desteği / Internal microphone and speaker support
+          - 🔵 Bluetooth mikrofon ve hoparlör desteği / Bluetooth microphone and speaker support
+          - 🔄 Canlı cihaz değiştirme / Live device switching
+          - 🎛️ Kolay cihaz seçimi / Easy device selection
           - 🚀 Modern Android UI (Jetpack Compose)
           
-          ### Kurulum:
-          1. APK dosyasını indirin
-          2. Android cihazınızda "Bilinmeyen kaynaklardan yükleme" iznini verin
-          3. APK'yı yükleyin
-          4. Mikrofon ve Bluetooth izinlerini verin
+          ### ⚠️ ÖNEMLİ / IMPORTANT:
+          **Türkçe:** Debug APK kullanın! Release APK imzasız olduğu için kurulum sorunları yaşayabilirsiniz.
+          **English:** Use Debug APK! Release APK may have installation issues due to lack of signature.
           
-          ### Sistem Gereksinimleri:
-          - Android 7.0 (API 24) ve üzeri
-          - Mikrofon erişim izni
-          - Bluetooth erişim izni (Bluetooth cihazlar için)
+          ### APK Dosyaları / APK Files:
+          | APK Türü / Type | Önerilen / Recommended | Açıklama / Description |
+          |-----------------|----------------------|----------------------|
+          | **Debug APK** ✅ | **EVET / YES** | Debug key ile imzalı, kolay kurulum / Signed with debug key, easy installation |
+          | Release APK ⚠️ | Hayır / No | İmzasız, kurulum sorunları olabilir / Unsigned, may have installation issues |
+          
+          ### Kurulum / Installation:
+          **Türkçe:**
+          1. **Debug APK** indirin (önerilen)
+          2. Android cihazınızda APK'yı yükleyin
+          3. Mikrofon ve Bluetooth izinlerini verin
+          
+          **English:**
+          1. Download **Debug APK** (recommended)
+          2. Install the APK on your Android device
+          3. Grant microphone and Bluetooth permissions
+          
+          ### Sistem Gereksinimleri / System Requirements:
+          - Android 7.0 (API 24) ve üzeri / and above
+          - Mikrofon erişim izni / Microphone access permission
+          - Bluetooth erişim izni / Bluetooth access permission (Bluetooth cihazlar için / for Bluetooth devices)
         draft: false
         prerelease: false
+        
+    - name: Upload Debug APK
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ steps.sign_apk.outputs.DEBUG_APK_PATH }}
+        asset_name: ${{ steps.sign_apk.outputs.DEBUG_APK_NAME }}
+        asset_content_type: application/vnd.android.package-archive
         
     - name: Upload Release APK
       uses: actions/upload-release-asset@v1
@@ -108,6 +141,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ${{ steps.sign_apk.outputs.APK_PATH }}
-        asset_name: ${{ steps.sign_apk.outputs.APK_NAME }}
+        asset_path: ${{ steps.sign_apk.outputs.RELEASE_APK_PATH }}
+        asset_name: ${{ steps.sign_apk.outputs.RELEASE_APK_NAME }}
         asset_content_type: application/vnd.android.package-archive

@@ -1,0 +1,67 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Microphone Capsule -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,25
+                         C60,25 65,30 65,36
+                         L65,52
+                         C65,58 60,63 54,63
+                         C48,63 43,58 43,52
+                         L43,36
+                         C43,30 48,25 54,25
+                         Z" />
+    
+    <!-- Microphone Grille Lines -->
+    <path
+        android:fillColor="#1976D2"
+        android:strokeWidth="1"
+        android:pathData="M47,33 L61,33 M47,37 L61,37 M47,41 L61,41 M47,45 L61,45 M47,49 L61,49 M47,53 L61,53" />
+    
+    <!-- Microphone Stand -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M52,63 L52,77 L56,77 L56,63 Z" />
+    
+    <!-- Base -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M44,77 L64,77 L64,81 L44,81 Z" />
+    
+    <!-- Sound Wave 1 -->
+    <path
+        android:fillColor="none"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M70,40 C75,40 78,43 78,47 C78,51 75,54 70,54" />
+    
+    <!-- Sound Wave 2 -->
+    <path
+        android:fillColor="none"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M38,40 C33,40 30,43 30,47 C30,51 33,54 38,54" />
+    
+    <!-- Sound Wave 3 (Outer) -->
+    <path
+        android:fillColor="none"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M75,35 C82,35 87,40 87,47 C87,54 82,59 75,59" />
+    
+    <!-- Sound Wave 4 (Outer) -->
+    <path
+        android:fillColor="none"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M33,35 C26,35 21,40 21,47 C21,54 26,59 33,59" />
+    
+</vector>
