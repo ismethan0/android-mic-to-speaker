@@ -55,7 +55,7 @@ class AudioRepository @Inject constructor() {
             microphones.add(
                 AudioDevice(
                     id = device.id,
-                    name = "${getDeviceTypeName(device.type)} ($name)",
+                    name = "${getDeviceTypeName(device.type, AudioDeviceType.MICROPHONE)} ($name)",
                     type = AudioDeviceType.MICROPHONE,
                     deviceInfo = device,
                     icon = com.microphone.speaker.app.R.drawable.ic_microphone_small
@@ -85,7 +85,7 @@ class AudioRepository @Inject constructor() {
             speakers.add(
                 AudioDevice(
                     id = device.id,
-                    name = "${getDeviceTypeName(device.type)} ($name)",
+                    name = "${getDeviceTypeName(device.type, AudioDeviceType.SPEAKER)} ($name)",
                     type = AudioDeviceType.SPEAKER,
                     deviceInfo = device,
                     icon = com.microphone.speaker.app.R.drawable.ic_speaker
@@ -96,16 +96,16 @@ class AudioRepository @Inject constructor() {
         return speakers
     }
 
-    private fun getDeviceTypeName(type: Int): String {
+    private fun getDeviceTypeName(type: Int, deviceType: AudioDeviceType): String {
         return when (type) {
             AudioDeviceInfo.TYPE_BUILTIN_MIC -> "Dahili Mikrofon"
-            AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> "Bluetooth Mikrofon"
+            AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> if (deviceType == AudioDeviceType.MICROPHONE) "Bluetooth Mikrofon" else "Bluetooth Kulaklık"
             AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "Bluetooth Hoparlör"
             AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "Dahili Hoparlör"
-            AudioDeviceInfo.TYPE_WIRED_HEADSET -> "Kablolu Kulaklık"
+            AudioDeviceInfo.TYPE_WIRED_HEADSET -> if (deviceType == AudioDeviceType.MICROPHONE) "Kablolu Kulaklık Mikrofonu" else "Kablolu Kulaklık"
             AudioDeviceInfo.TYPE_WIRED_HEADPHONES -> "Kablolu Kulaklık"
             AudioDeviceInfo.TYPE_USB_DEVICE -> "USB Cihaz"
-            AudioDeviceInfo.TYPE_USB_HEADSET -> "USB Kulaklık"
+            AudioDeviceInfo.TYPE_USB_HEADSET -> if (deviceType == AudioDeviceType.MICROPHONE) "USB Kulaklık Mikrofonu" else "USB Kulaklık"
             else -> "Ses Cihazı"
         }
     }
@@ -187,10 +187,15 @@ class AudioRepository @Inject constructor() {
             val actualRecordBufferSize = recordBufferSize * BUFFER_SIZE_MULTIPLIER
             
             // AudioRecord oluştur
-            // API 23+ için AudioRecord.Builder kullanabiliriz ama uyumluluk için constructor kullanıyoruz
-            // Ancak setPreferredDevice kullanacağız
+            // Mikrofon kaynağını belirle
+            val audioSource = if (microphone.deviceInfo?.type == AudioDeviceInfo.TYPE_BUILTIN_MIC) {
+                MediaRecorder.AudioSource.MIC // Dahili mikrofon için MIC kaynağını zorla
+            } else {
+                MediaRecorder.AudioSource.DEFAULT // Diğerleri için varsayılan (genellikle VOICE_COMMUNICATION)
+            }
+
             audioRecord = AudioRecord(
-                MediaRecorder.AudioSource.DEFAULT, // Cihazı setPreferredDevice ile seçeceğiz
+                audioSource,
                 sampleRate,
                 CHANNEL_CONFIG_IN,
                 AUDIO_FORMAT,
