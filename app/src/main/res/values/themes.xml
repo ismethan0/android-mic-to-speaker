@@ -17,8 +17,8 @@
 <resources>
 
     <!-- To see how these attributes are used, please visit https://material.io/develop/android/theming/color/ -->
-    <style name="Base.Theme.Sunflower" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Base.Theme.MicrophoneSpeaker" parent="Theme.MaterialComponents.DayNight.NoActionBar">
     </style>
 
-    <style name="Theme.Sunflower" parent="Base.Theme.Sunflower"></style>
+    <style name="Theme.MicrophoneSpeaker" parent="Base.Theme.MicrophoneSpeaker"></style>
 </resources>

@@ -29,7 +29,7 @@ android {
     applicationId = "com.microphone.speaker.app"
     minSdk = libs.versions.minSdk.get().toInt()
     targetSdk = libs.versions.targetSdk.get().toInt()
-    testInstrumentationRunner = "com.google.samples.apps.sunflower.utilities.MainTestRunner"
+    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     versionCode = 1
     versionName = "1.0.0"
     vectorDrawables.useSupportLibrary = true
@@ -43,15 +43,6 @@ android {
     release {
       isMinifyEnabled = true
       proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
-    }
-    create("benchmark") {
-      initWith(getByName("release"))
-      signingConfig = signingConfigs.getByName("debug")
-      isDebuggable = false
-      proguardFiles(
-        getDefaultProguardFile("proguard-android-optimize.txt"),
-        "proguard-rules-benchmark.pro"
-      )
     }
   }
   compileOptions {
@@ -80,14 +71,8 @@ android {
   }
 
   testOptions {
-    managedDevices {
-      devices {
-        maybeCreate<com.android.build.api.dsl.ManagedVirtualDevice>("pixel2api27").apply {
-          device = "Pixel 2"
-          apiLevel = 27
-          systemImageSource = "aosp"
-        }
-      }
+    unitTests {
+      isIncludeAndroidResources = true
     }
   }
   namespace = "com.microphone.speaker.app"
