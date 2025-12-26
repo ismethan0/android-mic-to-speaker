@@ -260,7 +260,11 @@ class AudioRepository @Inject constructor() {
         } catch (e: IllegalStateException) {
             Result.failure(Exception("Audio cihazı kullanımda: ${e.message}"))
         } catch (e: Exception) {
-            ResusetupAudioRouting(audioManager: AudioManager, speaker: AudioDevice) {
+            Result.failure(Exception("Ses aktarımı başlatılamadı: ${e.message}"))
+        }
+    }
+
+    private fun setupAudioRouting(audioManager: AudioManager, speaker: AudioDevice) {
         val type = speaker.deviceInfo?.type ?: return
 
         // Reset states
@@ -298,11 +302,7 @@ class AudioRepository @Inject constructor() {
         return AudioTrack.Builder()
             .setAudioAttributes(
                 AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION
-        return AudioTrack.Builder()
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                     .build()
             )
