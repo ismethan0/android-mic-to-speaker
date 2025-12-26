@@ -38,54 +38,71 @@ class AudioRepository @Inject constructor() {
     
     fun getAvailableMicrophones(context: Context): List<AudioDevice> {
         val microphones = mutableListOf<AudioDevice>()
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         
-        // Dahili mikrofon
-        microphones.add(
-            AudioDevice(
-                id = MediaRecorder.AudioSource.MIC,
-                name = "Dahili Mikrofon",
-                type = AudioDeviceType.MICROPHONE
-            )
-        )
+        val devices = audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)
         
-        // Bluetooth mikrofon (eğer varsa)
-        if (hasBluetoothPermission(context)) {
-            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            
-            if (audioManager.isBluetoothScoAvailableOffCall) {
-                microphones.add(
-                    AudioDevice(
-                        id = BLUETOOTH_SCO_AUDIO_SOURCE,
-                        name = "Bluetooth Mikrofon",
-                        type = AudioDeviceType.MICROPHONE
-                    )
-                )
+        for (device in devices) {
+            val name = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                device.address.takeIf { it.isNotEmpty() } ?: device.productName.toString()
+            } else {
+                device.productName.toString()
             }
+            
+            microphones.add(
+                AudioDevice(
+                    id = device.id,
+                    name = "${getDeviceTypeName(device.type)} ($name)",
+                    type = AudioDeviceType.MICROPHONE,
+                    deviceInfo = device
+                )
+            )
         }
         
         return microphones
     }
     
-    fun getCurrentSpeaker(context: Context): AudioDevice {
+    fun getAvailableSpeakers(context: Context): List<AudioDevice> {
+        val speakers = mutableListOf<AudioDevice>()
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         
-        return when {
-            audioManager.isBluetoothScoOn || audioManager.isBluetoothA2dpOn -> {
-                AudioDevice(
-                    id = BLUETOOTH_SCO_STREAM,
-                    name = "Sistem Hoparlörü (Bluetooth)",
-                    type = AudioDeviceType.SPEAKER
-                )
+        val devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+        
+        for (device in devices) {
+            val name = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                device.address.takeIf { it.isNotEmpty() } ?: device.productName.toString()
+            } else {
+                device.productName.toString()
             }
-            else -> {
+            
+            speakers.add(
                 AudioDevice(
-                    id = AudioManager.STREAM_MUSIC,
-                    name = "Sistem Hoparlörü",
-                    type = AudioDeviceType.SPEAKER
+                    id = device.id,
+                    name = "${getDeviceTypeName(device.type)} ($name)",
+                    type = AudioDeviceType.SPEAKER,
+                    deviceInfo = device
                 )
-            }
+            )
+        }
+        
+        return speakers
+    }
+
+    private fun getDeviceTypeName(type: Int): String {
+        return when (type) {
+            AudioDeviceInfo.TYPE_BUILTIN_MIC -> "Dahili Mikrofon"
+            AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> "Bluetooth Mikrofon"
+            AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "Bluetooth Hoparlör"
+            AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "Dahili Hoparlör"
+            AudioDeviceInfo.TYPE_WIRED_HEADSET -> "Kablolu Kulaklık"
+            AudioDeviceInfo.TYPE_WIRED_HEADPHONES -> "Kablolu Kulaklık"
+            AudioDeviceInfo.TYPE_USB_DEVICE -> "USB Cihaz"
+            AudioDeviceInfo.TYPE_USB_HEADSET -> "USB Kulaklık"
+            else -> "Ses Cihazı"
         }
     }
+    
+    // getCurrentSpeaker kaldırıldı, yerine getAvailableSpeakers kullanılacak
     
     suspend fun startAudioTransfer(
         context: Context,
@@ -144,15 +161,6 @@ class AudioRepository @Inject constructor() {
             val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             val sampleRate = audioQuality.sampleRate
             
-            // Önce mevcut Bluetooth SCO'yu kapat
-            if (audioManager.isBluetoothScoOn) {
-                audioManager.stopBluetoothSco()
-                audioManager.isBluetoothScoOn = false
-            }
-            
-            // Audio routing ayarları
-            setupAudioRouting(audioManager, speaker)
-            
             // AudioRecord için buffer size hesapla
             val recordBufferSize = AudioRecord.getMinBufferSize(
                 sampleRate, 
@@ -167,8 +175,10 @@ class AudioRepository @Inject constructor() {
             val actualRecordBufferSize = recordBufferSize * BUFFER_SIZE_MULTIPLIER
             
             // AudioRecord oluştur
+            // API 23+ için AudioRecord.Builder kullanabiliriz ama uyumluluk için constructor kullanıyoruz
+            // Ancak setPreferredDevice kullanacağız
             audioRecord = AudioRecord(
-                microphone.id,
+                MediaRecorder.AudioSource.DEFAULT, // Cihazı setPreferredDevice ile seçeceğiz
                 sampleRate,
                 CHANNEL_CONFIG_IN,
                 AUDIO_FORMAT,
@@ -177,6 +187,14 @@ class AudioRepository @Inject constructor() {
             
             if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
                 return@withContext Result.failure(Exception("AudioRecord başlatılamadı"))
+            }
+            
+            // Mikrofonu yönlendir (API 23+)
+            if (microphone.deviceInfo != null) {
+                val success = audioRecord?.setPreferredDevice(microphone.deviceInfo)
+                if (success != true) {
+                    // Başarısız olsa bile devam et, belki varsayılan çalışır
+                }
             }
             
             // AudioTrack için buffer size hesapla
@@ -192,11 +210,19 @@ class AudioRepository @Inject constructor() {
             
             val actualTrackBufferSize = trackBufferSize * BUFFER_SIZE_MULTIPLIER
             
-            // AudioTrack oluştur - hoparlör tipine göre
-            audioTrack = createAudioTrack(AUDIO_FORMAT, sampleRate, actualTrackBufferSize, speaker)
+            // AudioTrack oluştur
+            audioTrack = createAudioTrack(AUDIO_FORMAT, sampleRate, actualTrackBufferSize)
             
             if (audioTrack?.state != AudioTrack.STATE_INITIALIZED) {
                 return@withContext Result.failure(Exception("AudioTrack başlatılamadı"))
+            }
+            
+            // Hoparlörü yönlendir (API 23+)
+            if (speaker.deviceInfo != null) {
+                val success = audioTrack?.setPreferredDevice(speaker.deviceInfo)
+                if (success != true) {
+                    // Başarısız olsa bile devam et
+                }
             }
             
             // Kayıt ve çalmayı başlat
@@ -218,38 +244,15 @@ class AudioRepository @Inject constructor() {
         }
     }
     
-    private fun setupAudioRouting(audioManager: AudioManager, speaker: AudioDevice) {
-        when (speaker.id) {
-            BLUETOOTH_SCO_STREAM -> {
-                // Bluetooth hoparlör için - düşük gecikme modu
-                audioManager.startBluetoothSco()
-                audioManager.isBluetoothScoOn = true
-                audioManager.mode = PERFORMANCE_MODE_LOW_LATENCY
-            }
-            AudioManager.STREAM_MUSIC -> {
-                // Dahili hoparlör için - düşük gecikme modu
-                audioManager.isBluetoothScoOn = false
-                audioManager.mode = PERFORMANCE_MODE_LOW_LATENCY
-                audioManager.isSpeakerphoneOn = true
-            }
-        }
-    }
-    
     private fun createAudioTrack(
         audioFormat: Int,
         sampleRate: Int,
-        bufferSize: Int,
-        speaker: AudioDevice
+        bufferSize: Int
     ): AudioTrack {
-        val usage = when (speaker.id) {
-            BLUETOOTH_SCO_STREAM -> AudioAttributes.USAGE_VOICE_COMMUNICATION
-            else -> AudioAttributes.USAGE_VOICE_COMMUNICATION // USAGE_MEDIA'dan değiştirildi
-        }
-        
         return AudioTrack.Builder()
             .setAudioAttributes(
                 AudioAttributes.Builder()
-                    .setUsage(usage)
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                     .build()
             )
@@ -261,7 +264,7 @@ class AudioRepository @Inject constructor() {
                     .build()
             )
             .setBufferSizeInBytes(bufferSize)
-            .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY) // Düşük gecikme modu
+            .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
             .build()
     }
     

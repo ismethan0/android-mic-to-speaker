@@ -32,13 +32,13 @@ class AudioViewModel @Inject constructor(
     private fun loadAudioDevices() {
         context?.let { ctx ->
             val microphones = audioRepository.getAvailableMicrophones(ctx)
-            val currentSpeaker = audioRepository.getCurrentSpeaker(ctx)
+            val speakers = audioRepository.getAvailableSpeakers(ctx)
             
             _uiState.value = _uiState.value.copy(
                 availableMicrophones = microphones,
-                availableSpeakers = listOf(currentSpeaker), // Sadece sistem hoparlörü
+                availableSpeakers = speakers,
                 selectedMicrophone = microphones.firstOrNull(),
-                selectedSpeaker = currentSpeaker
+                selectedSpeaker = speakers.firstOrNull()
             )
         }
     }

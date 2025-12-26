@@ -1,12 +1,14 @@
 package com.microphone.speaker.app.model
 
+import android.media.AudioDeviceInfo
 import androidx.annotation.StringRes
 import com.microphone.speaker.app.R
 
 data class AudioDevice(
     val id: Int,
     val name: String,
-    val type: AudioDeviceType
+    val type: AudioDeviceType,
+    val deviceInfo: AudioDeviceInfo? = null
 )
 
 enum class AudioDeviceType {

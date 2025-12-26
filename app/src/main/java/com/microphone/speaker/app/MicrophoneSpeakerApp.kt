@@ -129,7 +129,7 @@ fun MicrophoneSpeakerApp(
             }
         }
 
-        // Hoparlör Bilgisi (Sadece gösterim)
+        // Hoparlör Seçimi
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -139,36 +139,33 @@ fun MicrophoneSpeakerApp(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = stringResource(R.string.speaker_label),
+                    text = stringResource(R.string.speaker_selection),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = true,
-                        onClick = { /* Sadece gösterim */ },
-                        enabled = false
-                    )
-                    Text(
-                        text = uiState.selectedSpeaker?.name ?: stringResource(R.string.system_speaker),
-                        modifier = Modifier.padding(start = 8.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                uiState.availableSpeakers.forEach { speaker ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = (speaker.id == uiState.selectedSpeaker?.id),
+                                onClick = { viewModel.selectSpeaker(speaker) }
+                            )
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = (speaker.id == uiState.selectedSpeaker?.id),
+                            onClick = { viewModel.selectSpeaker(speaker) }
+                        )
+                        Text(
+                            text = speaker.name,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
                 }
-                
-                Text(
-                    text = stringResource(R.string.speaker_hint),
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
             }
         }
 
