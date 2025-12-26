@@ -78,6 +78,22 @@ jobs:
         echo "DEBUG_APK_PATH=app/build/outputs/apk/debug/app-debug.apk" >> $GITHUB_OUTPUT
         echo "DEBUG_APK_NAME=microphone-speaker-${{ steps.get_version.outputs.VERSION }}-debug.apk" >> $GITHUB_OUTPUT
         
+    - name: Create source code archive
+      id: create_source
+      run: |
+        # Gereksiz dosyaları hariç tut
+        tar -czf microphone-speaker-${{ steps.get_version.outputs.VERSION }}-source.tar.gz \
+          --exclude='.git' \
+          --exclude='.gradle' \
+          --exclude='build' \
+          --exclude='app/build' \
+          --exclude='*.iml' \
+          --exclude='.idea' \
+          --exclude='local.properties' \
+          .
+        echo "SOURCE_PATH=microphone-speaker-${{ steps.get_version.outputs.VERSION }}-source.tar.gz" >> $GITHUB_OUTPUT
+        echo "SOURCE_NAME=microphone-speaker-${{ steps.get_version.outputs.VERSION }}-source.tar.gz" >> $GITHUB_OUTPUT
+        
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -102,10 +118,11 @@ jobs:
           **English:** Use Debug APK! Release APK may have installation issues due to lack of signature.
           
           ### APK Dosyaları / APK Files:
-          | APK Türü / Type | Önerilen / Recommended | Açıklama / Description |
-          |-----------------|----------------------|----------------------|
+          | Dosya Türü / File Type | Önerilen / Recommended | Açıklama / Description |
+          |------------------------|----------------------|----------------------|
           | **Debug APK** ✅ | **EVET / YES** | Debug key ile imzalı, kolay kurulum / Signed with debug key, easy installation |
           | Release APK ⚠️ | Hayır / No | İmzasız, kurulum sorunları olabilir / Unsigned, may have installation issues |
+          | **Source Code** 📦 | Geliştiriciler / Developers | Kaynak kod arşivi / Source code archive |
           
           ### Kurulum / Installation:
           **Türkçe:**
@@ -144,3 +161,13 @@ jobs:
         asset_path: ${{ steps.sign_apk.outputs.RELEASE_APK_PATH }}
         asset_name: ${{ steps.sign_apk.outputs.RELEASE_APK_NAME }}
         asset_content_type: application/vnd.android.package-archive
+        
+    - name: Upload Source Code
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ steps.create_source.outputs.SOURCE_PATH }}
+        asset_name: ${{ steps.create_source.outputs.SOURCE_NAME }}
+        asset_content_type: application/gzip

@@ -7,11 +7,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.microphone.speaker.app.viewmodel.AudioViewModel
+import com.microphone.speaker.app.model.AudioQuality
 
 @Composable
 fun MicrophoneSpeakerApp(
@@ -32,7 +34,7 @@ fun MicrophoneSpeakerApp(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Mikrofon → Hoparlör",
+            text = stringResource(R.string.app_title),
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 32.dp)
@@ -48,7 +50,7 @@ fun MicrophoneSpeakerApp(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "Mikrofon Seçimi",
+                    text = stringResource(R.string.microphone_selection),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -78,7 +80,56 @@ fun MicrophoneSpeakerApp(
             }
         }
 
-        // Hoparlör Seçimi
+        // Ses Kalitesi Seçimi
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.audio_quality),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                AudioQuality.values().forEach { quality ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = (quality == uiState.selectedAudioQuality),
+                                onClick = { viewModel.selectAudioQuality(quality) }
+                            )
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = (quality == uiState.selectedAudioQuality),
+                            onClick = { viewModel.selectAudioQuality(quality) }
+                        )
+                        Column(
+                            modifier = Modifier.padding(start = 8.dp)
+                        ) {
+                            Text(
+                                text = stringResource(quality.displayNameRes),
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = stringResource(quality.descriptionRes),
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Hoparlör Bilgisi (Sadece gösterim)
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -88,33 +139,36 @@ fun MicrophoneSpeakerApp(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "Hoparlör Seçimi",
+                    text = stringResource(R.string.speaker_label),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 
-                uiState.availableSpeakers.forEach { speaker ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectable(
-                                selected = (speaker.id == uiState.selectedSpeaker?.id),
-                                onClick = { viewModel.selectSpeaker(speaker) }
-                            )
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = (speaker.id == uiState.selectedSpeaker?.id),
-                            onClick = { viewModel.selectSpeaker(speaker) }
-                        )
-                        Text(
-                            text = speaker.name,
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
-                    }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = true,
+                        onClick = { /* Sadece gösterim */ },
+                        enabled = false
+                    )
+                    Text(
+                        text = uiState.selectedSpeaker?.name ?: stringResource(R.string.system_speaker),
+                        modifier = Modifier.padding(start = 8.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
+                
+                Text(
+                    text = stringResource(R.string.speaker_hint),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
             }
         }
 
@@ -133,7 +187,7 @@ fun MicrophoneSpeakerApp(
             enabled = uiState.selectedMicrophone != null && uiState.selectedSpeaker != null
         ) {
             Text(
-                text = if (uiState.isRecording) "Durdur" else "Başlat",
+                text = if (uiState.isRecording) stringResource(R.string.stop) else stringResource(R.string.start),
                 fontSize = 18.sp
             )
         }
@@ -145,12 +199,19 @@ fun MicrophoneSpeakerApp(
                 modifier = Modifier.padding(top = 16.dp)
             ) {
                 Text(
-                    text = "🎤 Aktif - Mikrofon sesi hoparlöre aktarılıyor",
+                    text = stringResource(R.string.active_status),
                     color = MaterialTheme.colorScheme.primary
                 )
                 
                 Text(
-                    text = "💡 Cihazları değiştirebilirsiniz",
+                    text = stringResource(R.string.quality_status_format, stringResource(uiState.selectedAudioQuality.displayNameRes), uiState.selectedAudioQuality.sampleRate),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+                
+                Text(
+                    text = stringResource(R.string.change_settings_hint),
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp)
@@ -161,7 +222,7 @@ fun MicrophoneSpeakerApp(
         // Hata Mesajı
         uiState.errorMessage?.let { error ->
             Text(
-                text = "Hata: $error",
+                text = stringResource(R.string.error_format, error),
                 modifier = Modifier.padding(top = 16.dp),
                 color = MaterialTheme.colorScheme.error
             )

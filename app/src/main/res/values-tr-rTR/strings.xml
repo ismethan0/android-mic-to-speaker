@@ -15,8 +15,23 @@
   -->
 
 <resources>
-    <string name="app_name">Mikrofon Hoparlör</string>
+    <string name="app_name">Megafon</string>
     <string name="microphone_selection">Mikrofon Seçimi</string>
+    <string name="app_title">Mikrofon → Hoparlör</string>
+    <string name="audio_quality">Ses Kalitesi</string>
+    <string name="speaker_label">Hoparlör</string>
+    <string name="system_speaker">Sistem Hoparlörü</string>
+    <string name="speaker_hint">💡 Otomatik olarak sistemin aktif hoparlörü kullanılır</string>
+    <string name="quality_status_format">Kalite: %1$s (%2$d Hz)</string>
+    <string name="change_settings_hint">💡 Cihazları ve kaliteyi değiştirebilirsiniz</string>
+    <string name="error_format">Hata: %1$s</string>
+
+    <string name="quality_low_latency">Düşük Gecikme</string>
+    <string name="quality_low_latency_desc">Daha az gecikme, orta kalite</string>
+    <string name="quality_balanced">Dengeli</string>
+    <string name="quality_balanced_desc">Gecikme ve kalite dengesi</string>
+    <string name="quality_high_quality">Yüksek Kalite</string>
+    <string name="quality_high_quality_desc">En iyi kalite, biraz gecikme</string>
     <string name="speaker_selection">Hoparlör Seçimi</string>
     <string name="internal_microphone">Dahili Mikrofon</string>
     <string name="bluetooth_microphone">Bluetooth Mikrofon</string>

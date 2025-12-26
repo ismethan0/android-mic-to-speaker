@@ -15,8 +15,23 @@
   -->
 
 <resources>
-    <string name="app_name">Microphone Speaker</string>
+    <string name="app_name">Megaphone</string>
     <string name="microphone_selection">Microphone Selection</string>
+    <string name="app_title">Microphone → Speaker</string>
+    <string name="audio_quality">Audio Quality</string>
+    <string name="speaker_label">Speaker</string>
+    <string name="system_speaker">System Speaker</string>
+    <string name="speaker_hint">💡 Automatically uses the system\'s active speaker</string>
+    <string name="quality_status_format">Quality: %1$s (%2$d Hz)</string>
+    <string name="change_settings_hint">💡 You can change devices and quality</string>
+    <string name="error_format">Error: %1$s</string>
+    
+    <string name="quality_low_latency">Low Latency</string>
+    <string name="quality_low_latency_desc">Less latency, medium quality</string>
+    <string name="quality_balanced">Balanced</string>
+    <string name="quality_balanced_desc">Balance of latency and quality</string>
+    <string name="quality_high_quality">High Quality</string>
+    <string name="quality_high_quality_desc">Best quality, slight latency</string>
     <string name="speaker_selection">Speaker Selection</string>
     <string name="internal_microphone">Internal Microphone</string>
     <string name="bluetooth_microphone">Bluetooth Microphone</string>

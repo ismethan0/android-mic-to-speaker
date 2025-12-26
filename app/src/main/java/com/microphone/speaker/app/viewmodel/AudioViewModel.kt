@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.microphone.speaker.app.model.AudioDevice
 import com.microphone.speaker.app.model.AudioUiState
+import com.microphone.speaker.app.model.AudioQuality
 import com.microphone.speaker.app.repository.AudioRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,13 +32,13 @@ class AudioViewModel @Inject constructor(
     private fun loadAudioDevices() {
         context?.let { ctx ->
             val microphones = audioRepository.getAvailableMicrophones(ctx)
-            val speakers = audioRepository.getAvailableSpeakers(ctx)
+            val currentSpeaker = audioRepository.getCurrentSpeaker(ctx)
             
             _uiState.value = _uiState.value.copy(
                 availableMicrophones = microphones,
-                availableSpeakers = speakers,
+                availableSpeakers = listOf(currentSpeaker), // Sadece sistem hoparlörü
                 selectedMicrophone = microphones.firstOrNull(),
-                selectedSpeaker = speakers.firstOrNull()
+                selectedSpeaker = currentSpeaker
             )
         }
     }
@@ -68,10 +69,24 @@ class AudioViewModel @Inject constructor(
         }
     }
     
+    fun selectAudioQuality(audioQuality: AudioQuality) {
+        val currentState = _uiState.value
+        _uiState.value = currentState.copy(
+            selectedAudioQuality = audioQuality,
+            errorMessage = null
+        )
+        
+        // Eğer kayıt yapılıyorsa, kaliteyi değiştir
+        if (currentState.isRecording) {
+            changeAudioDevices()
+        }
+    }
+    
     private fun changeAudioDevices() {
         val currentState = _uiState.value
         val microphone = currentState.selectedMicrophone
         val speaker = currentState.selectedSpeaker
+        val audioQuality = currentState.selectedAudioQuality
         val ctx = context
         
         if (microphone == null || speaker == null || ctx == null) {
@@ -79,7 +94,7 @@ class AudioViewModel @Inject constructor(
         }
         
         viewModelScope.launch {
-            audioRepository.changeAudioDevices(ctx, microphone, speaker)
+            audioRepository.changeAudioDevices(ctx, microphone, speaker, audioQuality)
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
                         isRecording = false,
@@ -93,6 +108,7 @@ class AudioViewModel @Inject constructor(
         val currentState = _uiState.value
         val microphone = currentState.selectedMicrophone
         val speaker = currentState.selectedSpeaker
+        val audioQuality = currentState.selectedAudioQuality
         val ctx = context
         
         if (microphone == null || speaker == null || ctx == null) {
@@ -112,7 +128,7 @@ class AudioViewModel @Inject constructor(
         )
         
         viewModelScope.launch {
-            audioRepository.startAudioTransfer(ctx, microphone, speaker)
+            audioRepository.startAudioTransfer(ctx, microphone, speaker, audioQuality)
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
                         isRecording = false,
