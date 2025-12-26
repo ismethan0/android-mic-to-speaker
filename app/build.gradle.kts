@@ -55,12 +55,11 @@ android {
     jvmTarget = JavaVersion.VERSION_17.toString()
 
     // Enable Coroutines and Flow APIs
-    freeCompilerArgs = freeCompilerArgs + "-Xopt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
-    freeCompilerArgs = freeCompilerArgs + "-Xopt-in=kotlinx.coroutines.FlowPreview"
+    freeCompilerArgs = freeCompilerArgs + "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
+    freeCompilerArgs = freeCompilerArgs + "-opt-in=kotlinx.coroutines.FlowPreview"
   }
   buildFeatures {
     compose = true
-    dataBinding = true
     buildConfig = true
   }
   packagingOptions {

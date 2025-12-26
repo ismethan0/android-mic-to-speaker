@@ -13,7 +13,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.microphone.speaker.app.viewmodel.AudioViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MicrophoneSpeakerApp(
     viewModel: AudioViewModel = hiltViewModel()

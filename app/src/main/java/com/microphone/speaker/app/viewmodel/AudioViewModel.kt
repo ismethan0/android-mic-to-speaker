@@ -69,6 +69,10 @@ class AudioViewModel @Inject constructor(
             return
         }
         
+        if (currentState.isRecording) {
+            return // Zaten kayıt yapılıyor
+        }
+        
         _uiState.value = currentState.copy(
             isRecording = true,
             errorMessage = null
