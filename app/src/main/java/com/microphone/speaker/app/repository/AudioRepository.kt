@@ -25,6 +25,11 @@ class AudioRepository @Inject constructor() {
     companion object {
         private const val BLUETOOTH_SCO_AUDIO_SOURCE = 6 // MediaRecorder.AudioSource.BLUETOOTH_SCO
         private const val BLUETOOTH_SCO_STREAM = 6 // Custom stream type for Bluetooth
+        private const val SAMPLE_RATE = 44100
+        private const val CHANNEL_CONFIG_IN = AudioFormat.CHANNEL_IN_MONO
+        private const val CHANNEL_CONFIG_OUT = AudioFormat.CHANNEL_OUT_MONO
+        private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
+        private const val BUFFER_SIZE_MULTIPLIER = 2 // Buffer boyutunu artır
     }
     
     fun getAvailableMicrophones(context: Context): List<AudioDevice> {
@@ -149,42 +154,47 @@ class AudioRepository @Inject constructor() {
             // Audio routing ayarları
             setupAudioRouting(audioManager, speaker)
             
-            // AudioRecord ayarları
-            val sampleRate = 44100
-            val channelConfig = AudioFormat.CHANNEL_IN_MONO
-            val audioFormat = AudioFormat.ENCODING_PCM_16BIT
-            val bufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
+            // AudioRecord için buffer size hesapla
+            val recordBufferSize = AudioRecord.getMinBufferSize(
+                SAMPLE_RATE, 
+                CHANNEL_CONFIG_IN, 
+                AUDIO_FORMAT
+            )
             
-            if (bufferSize == AudioRecord.ERROR || bufferSize == AudioRecord.ERROR_BAD_VALUE) {
+            if (recordBufferSize == AudioRecord.ERROR || recordBufferSize == AudioRecord.ERROR_BAD_VALUE) {
                 return@withContext Result.failure(Exception("AudioRecord buffer size hatası"))
             }
+            
+            val actualRecordBufferSize = recordBufferSize * BUFFER_SIZE_MULTIPLIER
             
             // AudioRecord oluştur
             audioRecord = AudioRecord(
                 microphone.id,
-                sampleRate,
-                channelConfig,
-                audioFormat,
-                bufferSize
+                SAMPLE_RATE,
+                CHANNEL_CONFIG_IN,
+                AUDIO_FORMAT,
+                actualRecordBufferSize
             )
             
             if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
                 return@withContext Result.failure(Exception("AudioRecord başlatılamadı"))
             }
             
-            // AudioTrack ayarları
+            // AudioTrack için buffer size hesapla
             val trackBufferSize = AudioTrack.getMinBufferSize(
-                sampleRate,
-                AudioFormat.CHANNEL_OUT_MONO,
-                audioFormat
+                SAMPLE_RATE,
+                CHANNEL_CONFIG_OUT,
+                AUDIO_FORMAT
             )
             
             if (trackBufferSize == AudioTrack.ERROR || trackBufferSize == AudioTrack.ERROR_BAD_VALUE) {
                 return@withContext Result.failure(Exception("AudioTrack buffer size hatası"))
             }
             
+            val actualTrackBufferSize = trackBufferSize * BUFFER_SIZE_MULTIPLIER
+            
             // AudioTrack oluştur - hoparlör tipine göre
-            audioTrack = createAudioTrack(audioFormat, sampleRate, trackBufferSize, speaker)
+            audioTrack = createAudioTrack(AUDIO_FORMAT, SAMPLE_RATE, actualTrackBufferSize, speaker)
             
             if (audioTrack?.state != AudioTrack.STATE_INITIALIZED) {
                 return@withContext Result.failure(Exception("AudioTrack başlatılamadı"))
@@ -197,11 +207,15 @@ class AudioRepository @Inject constructor() {
             isRecording = true
             
             // Ses aktarım döngüsü - ayrı thread'de çalıştır
-            startAudioLoop(bufferSize)
+            startAudioLoop(actualRecordBufferSize)
             
             Result.success(Unit)
+        } catch (e: SecurityException) {
+            Result.failure(Exception("Mikrofon izni gerekli: ${e.message}"))
+        } catch (e: IllegalStateException) {
+            Result.failure(Exception("Audio cihazı kullanımda: ${e.message}"))
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception("Ses aktarımı başlatılamadı: ${e.message}"))
         }
     }
     
@@ -279,15 +293,41 @@ class AudioRepository @Inject constructor() {
     
     private suspend fun startAudioLoop(bufferSize: Int) = withContext(Dispatchers.IO) {
         val buffer = ByteArray(bufferSize)
+        var consecutiveErrors = 0
+        val maxConsecutiveErrors = 10
+        
         try {
-            while (isRecording) {
+            while (isRecording && consecutiveErrors < maxConsecutiveErrors) {
                 val bytesRead = audioRecord?.read(buffer, 0, buffer.size) ?: 0
-                if (bytesRead > 0) {
-                    audioTrack?.write(buffer, 0, bytesRead)
+                
+                when {
+                    bytesRead > 0 -> {
+                        consecutiveErrors = 0 // Reset error counter
+                        val bytesWritten = audioTrack?.write(buffer, 0, bytesRead) ?: 0
+                        
+                        if (bytesWritten < 0) {
+                            consecutiveErrors++
+                        }
+                    }
+                    bytesRead == AudioRecord.ERROR_INVALID_OPERATION -> {
+                        consecutiveErrors++
+                    }
+                    bytesRead == AudioRecord.ERROR_BAD_VALUE -> {
+                        consecutiveErrors++
+                    }
+                    else -> {
+                        consecutiveErrors++
+                    }
+                }
+                
+                // Kısa bir bekleme ekle CPU kullanımını azaltmak için
+                if (consecutiveErrors > 0) {
+                    kotlinx.coroutines.delay(1)
                 }
             }
         } catch (e: Exception) {
             // Ses döngüsü hatası - sessizce durdur
+        } finally {
             isRecording = false
         }
     }

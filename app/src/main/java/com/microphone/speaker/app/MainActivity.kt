@@ -20,9 +20,10 @@ class MainActivity : ComponentActivity() {
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        val allGranted = permissions.values.all { it }
-        if (!allGranted) {
-            // İzinler reddedildi - kullanıcıya bilgi ver
+        val deniedPermissions = permissions.filterValues { !it }.keys
+        if (deniedPermissions.isNotEmpty()) {
+            // Kritik izinler reddedildiyse kullanıcıyı bilgilendir
+            handleDeniedPermissions(deniedPermissions)
         }
     }
     
@@ -45,18 +46,34 @@ class MainActivity : ComponentActivity() {
     }
     
     private fun checkAndRequestPermissions() {
-        val permissions = arrayOf(
+        val requiredPermissions = mutableListOf(
             Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.MODIFY_AUDIO_SETTINGS,
-            Manifest.permission.BLUETOOTH_CONNECT
+            Manifest.permission.MODIFY_AUDIO_SETTINGS
         )
         
-        val permissionsToRequest = permissions.filter {
+        // Android 12+ için Bluetooth izni
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            requiredPermissions.add(Manifest.permission.BLUETOOTH_CONNECT)
+        } else {
+            requiredPermissions.add(Manifest.permission.BLUETOOTH)
+        }
+        
+        val permissionsToRequest = requiredPermissions.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
         
         if (permissionsToRequest.isNotEmpty()) {
             permissionLauncher.launch(permissionsToRequest.toTypedArray())
+        }
+    }
+    
+    private fun handleDeniedPermissions(deniedPermissions: Set<String>) {
+        // Kritik izinler kontrol et
+        val hasMicrophonePermission = !deniedPermissions.contains(Manifest.permission.RECORD_AUDIO)
+        
+        if (!hasMicrophonePermission) {
+            // Mikrofon izni olmadan uygulama çalışamaz
+            // Kullanıcıyı ayarlara yönlendir veya açıklama göster
         }
     }
 }

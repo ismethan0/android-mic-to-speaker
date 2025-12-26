@@ -29,8 +29,11 @@
     <!-- Microphone Grille Lines -->
     <path
         android:fillColor="#1976D2"
-        android:strokeWidth="0.5"
-        android:pathData="M21,13 L27,13 M21,16 L27,16 M21,19 L27,19 M21,22 L27,22 M21,25 L27,25" />
+        android:pathData="M21,13 L27,13 L27,14 L21,14 Z
+                         M21,16 L27,16 L27,17 L21,17 Z
+                         M21,19 L27,19 L27,20 L21,20 Z
+                         M21,22 L27,22 L27,23 L21,23 Z
+                         M21,25 L27,25 L27,26 L21,26 Z" />
     
     <!-- Microphone Stand -->
     <path
@@ -42,19 +45,14 @@
         android:fillColor="#FFFFFF"
         android:pathData="M20,36 L28,36 L28,38 L20,38 Z" />
     
-    <!-- Sound Waves -->
+    <!-- Sound Wave Right -->
     <path
-        android:fillColor="none"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="1.5"
-        android:strokeLineCap="round"
-        android:pathData="M32,18 C34,18 35,19 35,21 C35,23 34,24 32,24" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,20 C33,19 34,19 35,20 C35,21 35,21 35,21 C35,23 35,23 35,23 C34,24 33,24 32,23 L32,22 C32.5,21.5 33,21.5 33,21 C33,20.5 32.5,20.5 32,21 Z" />
     
+    <!-- Sound Wave Left -->
     <path
-        android:fillColor="none"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="1.5"
-        android:strokeLineCap="round"
-        android:pathData="M16,18 C14,18 13,19 13,21 C13,23 14,24 16,24" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,20 C15,19 14,19 13,20 C13,21 13,21 13,21 C13,23 13,23 13,23 C14,24 15,24 16,23 L16,22 C15.5,21.5 15,21.5 15,21 C15,20.5 15.5,20.5 16,21 Z" />
     
 </vector>

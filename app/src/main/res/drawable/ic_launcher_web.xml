@@ -64,37 +64,25 @@
         android:fillColor="#FFFFFF"
         android:pathData="M220,340 L292,340 L292,356 L220,356 Z" />
     
-    <!-- Sound Wave 1 -->
+    <!-- Sound Wave 1 - Right -->
     <path
-        android:fillColor="none"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="12"
-        android:strokeLineCap="round"
-        android:pathData="M330,170 C350,170 365,185 365,205 C365,225 350,240 330,240" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M330,180 C340,170 355,170 365,180 C370,185 370,190 370,205 C370,220 370,225 365,230 C355,240 340,240 330,230 L330,220 C335,215 340,215 345,205 C340,195 335,195 330,200 Z" />
     
-    <!-- Sound Wave 2 -->
+    <!-- Sound Wave 2 - Left -->
     <path
-        android:fillColor="none"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="12"
-        android:strokeLineCap="round"
-        android:pathData="M182,170 C162,170 147,185 147,205 C147,225 162,240 182,240" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M182,180 C172,170 157,170 147,180 C142,185 142,190 142,205 C142,220 142,225 147,230 C157,240 172,240 182,230 L182,220 C177,215 172,215 167,205 C172,195 177,195 182,200 Z" />
     
-    <!-- Sound Wave 3 (Outer) -->
+    <!-- Sound Wave 3 - Right Outer -->
     <path
-        android:fillColor="none"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="8"
-        android:strokeLineCap="round"
-        android:pathData="M350,150 C380,150 405,175 405,205 C405,235 380,260 350,260" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M350,160 C365,150 385,150 405,160 C410,165 410,175 410,205 C410,235 410,245 405,250 C385,260 365,260 350,250 L350,240 C360,235 370,230 375,205 C370,180 360,175 350,170 Z" />
     
-    <!-- Sound Wave 4 (Outer) -->
+    <!-- Sound Wave 4 - Left Outer -->
     <path
-        android:fillColor="none"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="8"
-        android:strokeLineCap="round"
-        android:pathData="M162,150 C132,150 107,175 107,205 C107,235 132,260 162,260" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M162,160 C147,150 127,150 107,160 C102,165 102,175 102,205 C102,235 102,245 107,250 C127,260 147,260 162,250 L162,240 C152,235 142,230 137,205 C142,180 152,175 162,170 Z" />
     
     <!-- Highlight on Microphone -->
     <path
