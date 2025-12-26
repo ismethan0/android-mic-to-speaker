@@ -30,5 +30,6 @@ dependencyResolutionManagement {
   }
 }
 
+rootProject.name = "MicrophoneSpeaker"
+
 include(":app")
-include(":macrobenchmark")

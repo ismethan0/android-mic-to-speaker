@@ -1,5 +1,5 @@
 <!--
-  ~ Copyright 2019 Google LLC
+  ~ Copyright 2024 Mikrofon Hoparlör Uygulaması
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -15,35 +15,18 @@
   -->
 
 <resources>
-    <string name="menu_filter_by_grow_zone">Yetişme bölgesine göre filtrele</string>
-    <string name="plant_detail_image_content_description">Bitkinin görüntüsü</string>
-    <string name="my_garden_title">Bahçem</string>
-    <string name="plant_list_title">Bitki listesi</string>
-    <string name="available">Mevcut Bitkiler</string>
-    <string name="plant_details_title">Bitki detayları</string>
-    <string name="add_plant">Bitki Ekle</string>
-    <string name="added_plant_to_garden">Bitki bahçeye eklendi</string>
-    <string name="garden_empty">Bahçen boş</string>
-    <string name="plant_date_header">Ekiliş Tarihi</string>
-    <string name="watered_date_header">Son Sulama Tarihi</string>
-    <string name="menu_item_share_plant">Paylaş</string>
-    <string name="share_text_plant">%s bitkisini Android Sunflower uygulamasında inceleyin</string>
-
-    <!-- String plurals and their related prefix / suffix strings -->
-    <string name="watering_needs_prefix">Sulama gereksinimi:</string>
-    <plurals name="watering_needs_suffix">
-        <item quantity="one">her gün</item>
-        <item quantity="other">%d günde bir</item>
-    </plurals>
-
-    <plurals name="watering_next">
-        <item quantity="one">yarın sulayın.</item>
-        <item quantity="other">%d gün içinde sulayın.</item>
-    </plurals>
-
-    <!-- Accessibility -->
-    <string name="a11y_plant_item_image">Bitkinin görüntüsü</string>
-    <string name="gallery_title">Unsplash Fotoğrafları</string>
-    <string name="gallery_content_description">Galeri ekranına git</string>
-
+    <string name="app_name">Mikrofon Hoparlör</string>
+    <string name="microphone_selection">Mikrofon Seçimi</string>
+    <string name="speaker_selection">Hoparlör Seçimi</string>
+    <string name="internal_microphone">Dahili Mikrofon</string>
+    <string name="bluetooth_microphone">Bluetooth Mikrofon</string>
+    <string name="internal_speaker">Dahili Hoparlör</string>
+    <string name="bluetooth_speaker">Bluetooth Hoparlör</string>
+    <string name="start">Başlat</string>
+    <string name="stop">Durdur</string>
+    <string name="active_status">🎤 Aktif - Mikrofon sesi hoparlöre aktarılıyor</string>
+    <string name="error_prefix">Hata: </string>
+    <string name="select_devices_error">Mikrofon ve hoparlör seçilmelidir</string>
+    <string name="permission_microphone">Mikrofon izni gerekli</string>
+    <string name="permission_bluetooth">Bluetooth izni gerekli</string>
 </resources>

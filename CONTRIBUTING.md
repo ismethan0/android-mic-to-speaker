@@ -1,28 +1,70 @@
-# How to Contribute
+# Mikrofon Hoparlör Uygulamasına Katkıda Bulunma
 
-We'd love to accept your patches and contributions to this project. There are
-just a few small guidelines you need to follow.
+Bu projeye katkıda bulunmak istediğiniz için teşekkürler! 
 
-## Contributor License Agreement
+## 🚀 Hızlı Başlangıç
 
-Contributions to this project must be accompanied by a Contributor License
-Agreement. You (or your employer) retain the copyright to your contribution,
-this simply gives us permission to use and redistribute your contributions as
-part of the project. Head over to <https://cla.developers.google.com/> to see
-your current agreements on file or to sign a new one.
+1. Projeyi fork edin
+2. Yerel makinenize klonlayın:
+   ```bash
+   git clone https://github.com/[KULLANICI_ADI]/[REPO_ADI].git
+   ```
+3. Android Studio'da açın
+4. Değişikliklerinizi yapın
+5. Pull request gönderin
 
-You generally only need to submit a CLA once, so if you've already submitted one
-(even if it was for a different project), you probably don't need to do it
-again.
+## 📋 Geliştirme Kuralları
 
-## Code reviews
+- Kotlin kod standartlarına uyun
+- Commit mesajlarını Türkçe yazın
+- Her özellik için ayrı branch oluşturun
+- Test ekleyin (mümkünse)
 
-All submissions, including submissions by project members, require review. We
-use GitHub pull requests for this purpose. Consult
-[GitHub Help](https://help.github.com/articles/about-pull-requests/) for more
-information on using pull requests.
+## 🐛 Hata Bildirimi
 
-## Community Guidelines
+Hata bulduysanız lütfen [Issues](../../issues) sayfasından bildirin ve şunları ekleyin:
+- Android sürümü
+- Cihaz modeli  
+- Hatanın adımları
+- Beklenen davranış
+- Gerçek davranış
 
-This project follows [Google's Open Source Community
-Guidelines](https://opensource.google.com/conduct/).
+## 💡 Özellik İstekleri
+
+Yeni özellik önerilerinizi [Issues](../../issues) sayfasından paylaşabilirsiniz.
+
+## 🔧 Geliştirme Ortamı
+
+- Android Studio Arctic Fox veya üzeri
+- JDK 17+
+- Android SDK 34+
+- Kotlin 1.9+
+
+## 📝 Kod Stili
+
+- Kotlin resmi kod stilini takip edin
+- Fonksiyon ve değişken isimleri Türkçe olabilir
+- Yorum satırları Türkçe yazın
+- 4 boşluk indentation kullanın
+
+## 🧪 Test
+
+Yeni özellikler için test yazmaya çalışın:
+```bash
+./gradlew test
+```
+
+## 📦 Build
+
+Projeyi derlemek için:
+```bash
+./gradlew assembleDebug
+```
+
+## 🚀 Release
+
+Release oluşturmak için tag kullanın:
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```

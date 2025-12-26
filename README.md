@@ -1,93 +1,105 @@
-# Android Sunflower with Compose
+# Mikrofon Hoparlör Uygulaması
 
-Warning: The Sunflower repository is no longer under maintenance, We are prioritizing https://github.com/android/compose-samples as the up-to-date source of truth for Compose best practises. Please use that repository and sample set to continue learning about Jetpack Compose. If you'd like to continue using Sunflower, we encourage you to maintain your own fork of the sample. 
+![Build Status](https://github.com/[KULLANICI_ADI]/[REPO_ADI]/workflows/Build%20APK/badge.svg)
 
-A gardening app illustrating Android development best practices with migrating a View-based app to
-Jetpack Compose. To learn about how Sunflower was migrated to Compose, see the 
-[migration journey](https://github.com/android/sunflower/blob/main/docs/MigrationJourney.md) document.
+Mikrofondan gelen sesi gerçek zamanlı olarak hoparlöre aktaran basit Android uygulaması.
 
-> [!Note]
-> To see the original View implementation of Sunflower, checkout the [`views`](https://github.com/android/sunflower/tree/views) branch.
+## 🎤 Özellikler
 
-## Screenshots
+- **Gerçek Zamanlı Ses Aktarımı**: Mikrofondan gelen ses anında hoparlöre aktarılır
+- **Çoklu Cihaz Desteği**: 
+  - Dahili mikrofon
+  - Bluetooth mikrofon
+  - Dahili hoparlör  
+  - Bluetooth hoparlör
+- **Kolay Kullanım**: Basit ve sezgisel arayüz
+- **Modern Tasarım**: Jetpack Compose ile oluşturulmuş modern UI
 
-<img src="screenshots/SunflowerM3Screenshots.png"/>
+## 📱 Ekran Görüntüleri
 
-## Features
+<img src="screenshots/phone_my_garden.png" width="300"/>
 
-This sample showcases how to migrate an existing View-based app (Material 2) to Compose (Material 3). 
-See the linked migration journey doc above to learn more.
+## 🚀 Kurulum
 
-> [!Note]
-> As Compose cannot render HTML code in `Text` yet. The 
-> `AndroidViewBinding` API is used to embed a `TextView` in Compose. See the 
-> `PlantDescription` composable in the
-> [PlantDetailView file](app/src/main/java/com/google/samples/apps/sunflower/compose/plantdetail/PlantDetailView.kt).
+### APK İndirme
+1. [Releases](../../releases) sayfasından en son APK'yı indirin
+2. Android cihazınızda "Bilinmeyen kaynaklardan yükleme" iznini etkinleştirin
+3. APK dosyasını yükleyin
 
-## Requirements
-
-### Unsplash API key
-
-Sunflower uses the [Unsplash API](https://unsplash.com/developers) to load pictures on the gallery
-screen. To use the API, you will need to obtain a free developer API key. See the
-[Unsplash API Documentation](https://unsplash.com/documentation) for instructions.
-
-Once you have the key, add this line to the `gradle.properties` file, either in your user home
-directory (usually `~/.gradle/gradle.properties` on Linux and Mac) or in the project's root folder:
-
-```
-unsplash_access_key=<your Unsplash access key>
+### Kaynak Koddan Derleme
+```bash
+git clone https://github.com/[KULLANICI_ADI]/[REPO_ADI].git
+cd [REPO_ADI]
+./gradlew assembleDebug
 ```
 
-The app is still usable without an API key, though you won't be able to navigate to the gallery screen.
+## 🔧 Gereksinimler
 
-Android Studio IDE setup
-------------------------
-For development, the latest version of Android Studio is required. The latest version can be
-downloaded from [here](https://developer.android.com/studio/).
+- **Android 7.0** (API 24) ve üzeri
+- **Mikrofon erişim izni**
+- **Ses ayarları değiştirme izni**
+- **Bluetooth erişim izni** (Bluetooth cihazlar için)
 
-Sunflower uses [ktlint](https://ktlint.github.io/) to enforce Kotlin coding styles.
-Here's how to configure it for use with Android Studio (instructions adapted
-from the ktlint [README](https://github.com/shyiko/ktlint/blob/master/README.md)):
+## 📋 İzinler
 
-- Close Android Studio if it's open
+Uygulama aşağıdaki izinleri gerektirir:
 
-- Download ktlint using these [installation instructions](https://github.com/pinterest/ktlint/blob/master/README.md#installation)
+```xml
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+<uses-permission android:name="android.permission.BLUETOOTH" />
+<uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+```
 
-- Apply ktlint settings to Android Studio using these [instructions](https://github.com/pinterest/ktlint/blob/master/README.md#-with-intellij-idea)
+## 🛠️ Teknolojiler
 
-- Start Android Studio
+- **Kotlin** - Ana programlama dili
+- **Jetpack Compose** - Modern UI toolkit
+- **Hilt** - Dependency injection
+- **AudioRecord/AudioTrack** - Ses kayıt ve çalma
+- **MVVM Architecture** - Mimari deseni
 
-Additional resources
---------------------
-Check out these Wiki pages to learn more about Android Sunflower:
+## 📖 Kullanım
 
-- [Notable Community Contributions](https://github.com/android/sunflower/wiki/Notable-Community-Contributions)
+1. Uygulamayı açın
+2. Kullanmak istediğiniz mikrofonu seçin
+3. Ses çıkışı için hoparlörü seçin
+4. "Başlat" butonuna basın
+5. Mikrofondan gelen ses hoparlöre aktarılmaya başlar
+6. "Durdur" butonuna basarak aktarımı sonlandırın
 
-- [Publications](https://github.com/android/sunflower/wiki/Sunflower-Publications)
+## 🔄 GitHub Actions
 
-Non-Goals
----------
-Previously, this sample app was focused on demonstrating best practices for
-multiple Jetpack libraries. However, this is no longer the case and development
-will instead be focused on how to adopt Compose in an existing View-based app.
-So, there are no plans to implement features outside of this scope. Keep this
-in mind when making contributions to this library.
+Proje otomatik build ve release süreçleri içerir:
 
-Support
--------
+- **Build APK**: Her push'ta otomatik APK oluşturur
+- **Release**: Tag oluşturulduğunda otomatik release yapar
 
-- Stack Overflow:
-  - https://stackoverflow.com/questions/tagged/android-jetpack-compose
+### Release Oluşturma
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
 
-If you've found an error in this sample, please file an issue:
-https://github.com/android/sunflower/issues
+## 🤝 Katkıda Bulunma
 
-Patches are encouraged, and may be submitted by forking this project and submitting a pull request
-through GitHub.
+1. Projeyi fork edin
+2. Feature branch oluşturun (`git checkout -b feature/yeni-ozellik`)
+3. Değişikliklerinizi commit edin (`git commit -am 'Yeni özellik eklendi'`)
+4. Branch'inizi push edin (`git push origin feature/yeni-ozellik`)
+5. Pull Request oluşturun
 
-Third Party Content
--------------------
-Select text used for describing the plants (in `plants.json`) are used from Wikipedia via CC BY-SA 3.0 US (license in `ASSETS_LICENSE`).
+## 📄 Lisans
 
-"[seed](https://thenounproject.com/search/?q=seed&i=1585971)" by [Aisyah](https://thenounproject.com/aisyahalmasyira/) is licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/us/legalcode)
+Bu proje Apache 2.0 lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakın.
+
+## ⚠️ Uyarılar
+
+- Yüksek ses seviyelerinde geri besleme (feedback) oluşabilir
+- Kulaklık kullanımı önerilir
+- Bluetooth cihazlarda gecikme yaşanabilir
+
+## 🐛 Sorun Bildirimi
+
+Sorun yaşıyorsanız [Issues](../../issues) sayfasından bildirebilirsiniz.
