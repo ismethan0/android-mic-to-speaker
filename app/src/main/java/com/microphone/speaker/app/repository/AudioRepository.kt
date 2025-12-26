@@ -3,15 +3,27 @@ package com.microphone.speaker.app.repository
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
-import android.media.*
+import android.media.AudioAttributes
+import android.media.AudioDeviceInfo
+import android.media.AudioFormat
+import android.media.AudioManager
+import android.media.AudioRecord
+import android.media.AudioTrack
+import android.media.MediaRecorder
 import androidx.core.app.ActivityCompat
 import com.microphone.speaker.app.model.AudioDevice
 import com.microphone.speaker.app.model.AudioDeviceType
 import com.microphone.speaker.app.model.AudioQuality
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.min
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Singleton
 class AudioRepository @Inject constructor() {
@@ -19,21 +31,16 @@ class AudioRepository @Inject constructor() {
     private var audioRecord: AudioRecord? = null
     private var audioTrack: AudioTrack? = null
     private var isRecording = false
+    private var loopJob: Job? = null
+    private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var currentMicrophone: AudioDevice? = null
     private var currentSpeaker: AudioDevice? = null
     private var currentContext: Context? = null
     
     companion object {
-        private const val BLUETOOTH_SCO_AUDIO_SOURCE = 6 // MediaRecorder.AudioSource.BLUETOOTH_SCO
-        private const val BLUETOOTH_SCO_STREAM = 6 // Custom stream type for Bluetooth
-        
         private const val CHANNEL_CONFIG_IN = AudioFormat.CHANNEL_IN_MONO
         private const val CHANNEL_CONFIG_OUT = AudioFormat.CHANNEL_OUT_MONO
         private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
-        private const val BUFFER_SIZE_MULTIPLIER = 1
-        
-        // Performans modu ayarları
-        private const val PERFORMANCE_MODE_LOW_LATENCY = AudioManager.MODE_IN_COMMUNICATION
     }
     
     fun getAvailableMicrophones(context: Context): List<AudioDevice> {
@@ -119,277 +126,199 @@ class AudioRepository @Inject constructor() {
         audioQuality: AudioQuality
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            if (isRecording) {
-                return@withContext Result.failure(Exception("Ses aktarımı zaten başlatılmış"))
-            }
-            
             currentContext = context
             currentMicrophone = microphone
             currentSpeaker = speaker
-            
-            return@withContext setupAudioDevices(context, microphone, speaker, audioQuality)
+
+            if (isRecording) {
+                stopCurrentAudio()
+            }
+
+            return@withContext prepareAndStart(context, microphone, speaker, audioQuality)
         } catch (e: SecurityException) {
             Result.failure(Exception("Mikrofon izni gerekli: ${e.message}"))
         } catch (e: Exception) {
             Result.failure(Exception("Ses aktarımı başlatılamadı: ${e.message}"))
         }
     }
-    
+
     suspend fun changeAudioDevices(
         context: Context,
         microphone: AudioDevice,
         speaker: AudioDevice,
         audioQuality: AudioQuality
     ): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            if (!isRecording) {
-                return@withContext Result.failure(Exception("Ses aktarımı başlatılmamış"))
-            }
-            
-            // Mevcut ses aktarımını durdur
-            stopCurrentAudio()
-            
-            // Yeni cihazları ayarla
-            currentMicrophone = microphone
-            currentSpeaker = speaker
-            
-            return@withContext setupAudioDevices(context, microphone, speaker, audioQuality)
-        } catch (e: Exception) {
-            Result.failure(Exception("Cihaz değiştirme hatası: ${e.message}"))
+        currentContext = context
+        currentMicrophone = microphone
+        currentSpeaker = speaker
+
+        if (!isRecording) {
+            return@withContext prepareAndStart(context, microphone, speaker, audioQuality)
         }
+
+        stopCurrentAudio()
+        return@withContext prepareAndStart(context, microphone, speaker, audioQuality)
     }
     
-    private suspend fun setupAudioDevices(
+    private fun prepareAndStart(
         context: Context,
         microphone: AudioDevice,
         speaker: AudioDevice,
         audioQuality: AudioQuality
-    ): Result<Unit> = withContext(Dispatchers.IO) {
+    ): Result<Unit> {
         try {
             val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            
-            // Ses yönlendirmesini yap (Bluetooth SCO, Hoparlör vb.)
-            setupAudioRouting(audioManager, speaker)
-            
-            val sampleRate = audioQuality.sampleRate
-            
-            // AudioRecord için buffer size hesapla
-            val recordBufferSize = AudioRecord.getMinBufferSize(
-                sampleRate, 
-                CHANNEL_CONFIG_IN, 
-                AUDIO_FORMAT
-            )
-            
-            if (recordBufferSize == AudioRecord.ERROR || recordBufferSize == AudioRecord.ERROR_BAD_VALUE) {
-                return@withContext Result.failure(Exception("AudioRecord buffer size hatası"))
-            }
-            
-            val actualRecordBufferSize = recordBufferSize * BUFFER_SIZE_MULTIPLIER
-            
-            // AudioRecord oluştur
-            // Mikrofon kaynağını belirle
-            val audioSource = if (microphone.deviceInfo?.type == AudioDeviceInfo.TYPE_BUILTIN_MIC) {
-                MediaRecorder.AudioSource.MIC // Dahili mikrofon için MIC kaynağını zorla
-            } else {
-                MediaRecorder.AudioSource.DEFAULT // Diğerleri için varsayılan (genellikle VOICE_COMMUNICATION)
+
+            if (speaker.deviceInfo?.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO && !hasBluetoothPermission(context)) {
+                return Result.failure(Exception("Bluetooth izni gerekli"))
             }
 
-            audioRecord = AudioRecord(
-                audioSource,
-                sampleRate,
-                CHANNEL_CONFIG_IN,
-                AUDIO_FORMAT,
-                actualRecordBufferSize
-            )
-            
-            if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
-                return@withContext Result.failure(Exception("AudioRecord başlatılamadı"))
+            handleBluetoothRouting(audioManager, speaker)
+
+            val sampleRate = audioQuality.sampleRate
+
+            val recordBufferSize = AudioRecord.getMinBufferSize(sampleRate, CHANNEL_CONFIG_IN, AUDIO_FORMAT)
+            if (recordBufferSize == AudioRecord.ERROR || recordBufferSize == AudioRecord.ERROR_BAD_VALUE) {
+                return Result.failure(Exception("AudioRecord buffer size hatası"))
             }
-            
-            // Mikrofonu yönlendir (API 23+)
-            if (microphone.deviceInfo != null) {
-                try {
-                    val success = audioRecord?.setPreferredDevice(microphone.deviceInfo)
-                    if (success != true) {
-                        // Başarısız olsa bile devam et, belki varsayılan çalışır
-                    }
-                } catch (e: Exception) {
-                    // Cihaz seçimi hatası, yoksay
-                }
-            }
-            
-            // AudioTrack için buffer size hesapla
-            val trackBufferSize = AudioTrack.getMinBufferSize(
-                sampleRate,
-                CHANNEL_CONFIG_OUT,
-                AUDIO_FORMAT
-            )
-            
+
+            val trackBufferSize = AudioTrack.getMinBufferSize(sampleRate, CHANNEL_CONFIG_OUT, AUDIO_FORMAT)
             if (trackBufferSize == AudioTrack.ERROR || trackBufferSize == AudioTrack.ERROR_BAD_VALUE) {
-                return@withContext Result.failure(Exception("AudioTrack buffer size hatası"))
+                return Result.failure(Exception("AudioTrack buffer size hatası"))
             }
-            
-            val actualTrackBufferSize = trackBufferSize * BUFFER_SIZE_MULTIPLIER
-            
-            // AudioTrack oluştur
-            audioTrack = createAudioTrack(AUDIO_FORMAT, sampleRate, actualTrackBufferSize)
-            
-            if (audioTrack?.state != AudioTrack.STATE_INITIALIZED) {
-                return@withContext Result.failure(Exception("AudioTrack başlatılamadı"))
+
+            val preferredMicSource = if (microphone.deviceInfo?.type == AudioDeviceInfo.TYPE_BUILTIN_MIC) {
+                MediaRecorder.AudioSource.MIC
+            } else {
+                MediaRecorder.AudioSource.DEFAULT
             }
-            
-            // Hoparlörü yönlendir (API 23+)
-            if (speaker.deviceInfo != null) {
-                try {
-                    val success = audioTrack?.setPreferredDevice(speaker.deviceInfo)
-                    if (success != true) {
-                        // Başarısız olsa bile devam et
-                    }
-                } catch (e: Exception) {
-                    // Cihaz seçimi hatası, yoksay
-                }
+
+            val newAudioRecord = AudioRecord.Builder()
+                .setAudioSource(preferredMicSource)
+                .setAudioFormat(
+                    AudioFormat.Builder()
+                        .setSampleRate(sampleRate)
+                        .setEncoding(AUDIO_FORMAT)
+                        .setChannelMask(CHANNEL_CONFIG_IN)
+                        .build()
+                )
+                .setBufferSizeInBytes(recordBufferSize)
+                .build()
+
+            if (newAudioRecord.state != AudioRecord.STATE_INITIALIZED) {
+                newAudioRecord.release()
+                return Result.failure(Exception("AudioRecord başlatılamadı"))
             }
-            
-            // Kayıt ve çalmayı başlat
+
+            microphone.deviceInfo?.let { deviceInfo ->
+                runCatching { newAudioRecord.setPreferredDevice(deviceInfo) }
+            }
+
+            val newAudioTrack = AudioTrack.Builder()
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                )
+                .setAudioFormat(
+                    AudioFormat.Builder()
+                        .setEncoding(AUDIO_FORMAT)
+                        .setSampleRate(sampleRate)
+                        .setChannelMask(CHANNEL_CONFIG_OUT)
+                        .build()
+                )
+                .setBufferSizeInBytes(trackBufferSize)
+                .build()
+
+            if (newAudioTrack.state != AudioTrack.STATE_INITIALIZED) {
+                newAudioTrack.release()
+                newAudioRecord.release()
+                return Result.failure(Exception("AudioTrack başlatılamadı"))
+            }
+
+            speaker.deviceInfo?.let { deviceInfo ->
+                runCatching { newAudioTrack.setPreferredDevice(deviceInfo) }
+            }
+
+            stopCurrentAudio()
+
+            audioRecord = newAudioRecord
+            audioTrack = newAudioTrack
+
             audioRecord?.startRecording()
             audioTrack?.play()
-            
+
             isRecording = true
-            
-            // Ses aktarım döngüsü - ayrı thread'de çalıştır
-            startAudioLoop(actualRecordBufferSize)
-            
-            Result.success(Unit)
+
+            // Daha küçük buffer seçerek gecikmeyi azalt
+            val loopBufferSize = min(recordBufferSize, trackBufferSize)
+            startAudioLoop(loopBufferSize)
+
+            return Result.success(Unit)
         } catch (e: SecurityException) {
-            Result.failure(Exception("Mikrofon izni gerekli: ${e.message}"))
+            return Result.failure(Exception("Mikrofon izni gerekli: ${e.message}"))
         } catch (e: IllegalStateException) {
-            Result.failure(Exception("Audio cihazı kullanımda: ${e.message}"))
+            return Result.failure(Exception("Audio cihazı kullanımda: ${e.message}"))
         } catch (e: Exception) {
-            Result.failure(Exception("Ses aktarımı başlatılamadı: ${e.message}"))
+            return Result.failure(Exception("Ses aktarımı başlatılamadı: ${e.message}"))
         }
     }
 
-    private fun setupAudioRouting(audioManager: AudioManager, speaker: AudioDevice) {
-        val type = speaker.deviceInfo?.type ?: return
-
-        // Reset states
-        audioManager.mode = AudioManager.MODE_IN_COMMUNICATION // Low latency mode
+    private fun handleBluetoothRouting(audioManager: AudioManager, speaker: AudioDevice) {
+        audioManager.mode = AudioManager.MODE_NORMAL
         audioManager.stopBluetoothSco()
         audioManager.isBluetoothScoOn = false
         audioManager.isSpeakerphoneOn = false
 
-        when (type) {
-            AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
-            AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
-            AudioDeviceInfo.TYPE_BLE_HEADSET,
-            AudioDeviceInfo.TYPE_BLE_SPEAKER -> {
+        when (speaker.deviceInfo?.type) {
+            AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> {
                 audioManager.startBluetoothSco()
                 audioManager.isBluetoothScoOn = true
             }
             AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> {
                 audioManager.isSpeakerphoneOn = true
             }
-            AudioDeviceInfo.TYPE_BUILTIN_EARPIECE,
-            AudioDeviceInfo.TYPE_WIRED_HEADSET,
-            AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
-            AudioDeviceInfo.TYPE_USB_DEVICE,
-            AudioDeviceInfo.TYPE_USB_HEADSET -> {
-                audioManager.isSpeakerphoneOn = false
-            }
         }
     }
 
-    private fun createAudioTrack(
-        audioFormat: Int,
-        sampleRate: Int,
-        bufferSize: Int
-    ): AudioTrack {
-        return AudioTrack.Builder()
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                    .build()
-            )
-            .setAudioFormat(
-                AudioFormat.Builder()
-                    .setEncoding(audioFormat)
-                    .setSampleRate(sampleRate)
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                    .build()
-            )
-            .setBufferSizeInBytes(bufferSize)
-            .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
-            .build()
-    }
-    
-    private fun stopCurrentAudio() {
-        try {
-            audioRecord?.apply {
-                if (recordingState == AudioRecord.RECORDSTATE_RECORDING) {
-                    stop()
-                }
-                release()
-            }
-        } catch (e: Exception) {
-            // Ignore
-        }
-        audioRecord = null
-        
-        try {
-            audioTrack?.apply {
-                if (playState == AudioTrack.PLAYSTATE_PLAYING) {
-                    stop()
-                }
-                release()
-            }
-        } catch (e: Exception) {
-            // Ignore
-        }
-        audioTrack = null
-    }
-    
-    private suspend fun startAudioLoop(bufferSize: Int) = withContext(Dispatchers.IO) {
+    private fun startAudioLoop(bufferSize: Int) {
+        loopJob?.cancel()
         val buffer = ByteArray(bufferSize)
-        var consecutiveErrors = 0
-        val maxConsecutiveErrors = 5 // 10'dan 5'e düşürüldü
-        
-        try {
-            while (isRecording && consecutiveErrors < maxConsecutiveErrors) {
-                val bytesRead = audioRecord?.read(buffer, 0, buffer.size) ?: 0
-                
-                when {
-                    bytesRead > 0 -> {
-                        consecutiveErrors = 0 // Reset error counter
-                        
-                        // Anında yazma - gecikmeyi azaltmak için
-                        val bytesWritten = audioTrack?.write(buffer, 0, bytesRead, AudioTrack.WRITE_NON_BLOCKING) ?: 0
-                        
-                        if (bytesWritten < 0) {
-                            consecutiveErrors++
-                        }
-                    }
-                    bytesRead == AudioRecord.ERROR_INVALID_OPERATION -> {
-                        consecutiveErrors++
-                    }
-                    bytesRead == AudioRecord.ERROR_BAD_VALUE -> {
-                        consecutiveErrors++
-                    }
-                    else -> {
-                        consecutiveErrors++
-                    }
-                }
-                
-                // Sadece hata durumunda bekleme - normal durumda gecikme yok
-                if (consecutiveErrors > 0) {
-                    kotlinx.coroutines.delay(1)
+
+        loopJob = ioScope.launch {
+            while (isRecording && isActive) {
+                val bytesRead = audioRecord?.read(buffer, 0, buffer.size) ?: break
+                if (bytesRead > 0) {
+                    audioTrack?.write(buffer, 0, bytesRead, AudioTrack.WRITE_BLOCKING)
                 }
             }
-        } catch (e: Exception) {
-            // Ses döngüsü hatası - sessizce durdur
-        } finally {
             isRecording = false
         }
+    }
+
+    private fun stopCurrentAudio() {
+        isRecording = false
+        loopJob?.cancel()
+        loopJob = null
+
+        try {
+            audioRecord?.apply {
+                if (recordingState == AudioRecord.RECORDSTATE_RECORDING) stop()
+                release()
+            }
+        } catch (_: Exception) {
+        }
+        audioRecord = null
+
+        try {
+            audioTrack?.apply {
+                if (playState == AudioTrack.PLAYSTATE_PLAYING) stop()
+                release()
+            }
+        } catch (_: Exception) {
+        }
+        audioTrack = null
     }
     
     fun stopAudioTransfer(context: Context) {
